@@ -1,0 +1,411 @@
+openapi: 3.1.0
+info:
+  title: OAB Maranhão · QR Code Wallpaper Wi-Fi API
+  version: 1.0.0
+  description: >
+    API interna do sistema de geração de papéis de parede institucionais
+    com QR Code Wi-Fi para a OAB Maranhão.
+  contact:
+    name: Gerência de TI – OAB Maranhão
+    email: informatica@oabma.org.br
+
+servers:
+  - url: /api
+    description: Servidor Next.js (relativo)
+
+tags:
+  - name: Templates
+    description: Gerenciamento de templates de wallpaper
+  - name: Wallpapers
+    description: Geração, listagem e download de wallpapers
+
+paths:
+
+  # ── Templates ────────────────────────────────────────────────────────────────
+
+  /templates:
+    get:
+      tags: [Templates]
+      summary: Listar templates
+      description: Retorna todos os templates cadastrados (ativos e inativos).
+      responses:
+        '200':
+          description: Lista de templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Template'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags: [Templates]
+      summary: Upload de template
+      description: >
+        Envia uma imagem PNG como novo template. O arquivo é armazenado em
+        `public/uploads/` e registrado no banco de dados.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, name]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Imagem PNG do template (resolução recomendada 1080×1920)
+                name:
+                  type: string
+                  minLength: 3
+                  maxLength: 100
+                  description: Nome exibido na interface
+                description:
+                  type: string
+                  maxLength: 300
+                  description: Descrição opcional
+      responses:
+        '201':
+          description: Template criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /templates/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+
+    patch:
+      tags: [Templates]
+      summary: Ativar / desativar template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isActive]
+              properties:
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: Template atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    delete:
+      tags: [Templates]
+      summary: Remover template
+      description: >
+        Remove o template e o arquivo de imagem. Falha com 409 se o template
+        possuir wallpapers vinculados.
+      responses:
+        '200':
+          description: Remoção bem-sucedida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '409':
+          description: Conflito – template possui wallpapers vinculados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ── Wallpapers ───────────────────────────────────────────────────────────────
+
+  /wallpapers:
+    get:
+      tags: [Wallpapers]
+      summary: Listar wallpapers (cursor paginado)
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: ID do último item da página anterior (omitir na primeira página)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Quantidade de itens por página
+      responses:
+        '200':
+          description: Página de wallpapers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWallpapers'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags: [Wallpapers]
+      summary: Gerar wallpaper
+      description: >
+        Combina o template selecionado com o QR Code Wi-Fi gerado a partir das
+        credenciais fornecidas e persiste o resultado em disco.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateWallpaperInput'
+      responses:
+        '201':
+          description: Wallpaper gerado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallpaper'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /wallpapers/preview:
+    get:
+      tags: [Wallpapers]
+      summary: Preview do wallpaper (PNG em tempo real)
+      description: >
+        Gera e retorna a imagem PNG do wallpaper sem persistir no banco.
+        Útil para exibição em tempo real no formulário.
+      parameters:
+        - name: templateId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: ssid
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 32
+        - name: password
+          in: query
+          schema:
+            type: string
+            maxLength: 63
+            default: ''
+        - name: security
+          in: query
+          schema:
+            type: string
+            enum: [WPA, WEP, nopass]
+            default: WPA
+      responses:
+        '200':
+          description: Imagem PNG do wallpaper
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /wallpapers/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+
+    delete:
+      tags: [Wallpapers]
+      summary: Remover wallpaper
+      responses:
+        '200':
+          description: Remoção bem-sucedida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /wallpapers/{id}/download:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+
+    get:
+      tags: [Wallpapers]
+      summary: Download do wallpaper
+      description: >
+        Retorna o arquivo PNG com header `Content-Disposition: attachment`.
+        O nome do arquivo segue o padrão `oabma-{comarca}-wifi.png`.
+      responses:
+        '200':
+          description: Arquivo PNG para download
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: 'attachment; filename="oabma-sao-luis-wifi.png"'
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+# ── Components ─────────────────────────────────────────────────────────────────
+
+components:
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: UUID do recurso
+
+  schemas:
+
+    Template:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: [string, 'null']
+        publicUrl:
+          type: string
+          format: uri
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Wallpaper:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        comarcaName:
+          type: string
+        wifiSsid:
+          type: string
+        wifiPassword:
+          type: string
+        wifiSecurity:
+          type: string
+          enum: [WPA, WEP, nopass]
+        publicUrl:
+          type: string
+          format: uri
+        storedPath:
+          type: string
+        templateId:
+          type: string
+          format: uuid
+        templateName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    PaginatedWallpapers:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Wallpaper'
+        nextCursor:
+          type: [string, 'null']
+          description: >
+            ID do último item retornado. Passe como `cursor` na próxima
+            requisição. `null` indica que não há mais páginas.
+
+    GenerateWallpaperInput:
+      type: object
+      required: [templateId, wifiSsid, wifiPassword]
+      properties:
+        templateId:
+          type: string
+          description: ID do template a ser usado
+        comarcaName:
+          type: string
+          maxLength: 80
+          default: ''
+          description: Nome da comarca (opcional)
+        wifiSsid:
+          type: string
+          minLength: 1
+          maxLength: 32
+          description: Nome da rede Wi-Fi (SSID)
+        wifiPassword:
+          type: string
+          maxLength: 63
+          description: Senha da rede Wi-Fi
+        wifiSecurity:
+          type: string
+          enum: [WPA, WEP, nopass]
+          default: WPA
+
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Mensagem de erro
+
+  responses:
+    BadRequest:
+      description: Requisição inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Erro interno do servidor
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
