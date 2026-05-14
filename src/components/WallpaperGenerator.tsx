@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { WallpaperPreview } from '@/components/WallpaperPreview'
 import type { TemplateDto, WallpaperDto } from '@/lib/types'
-import { type GenerateWallpaperInput, generateWallpaperSchema } from '@/lib/validations'
+import { type GenerateWallpaperFormInput, type GenerateWallpaperInput, generateWallpaperSchema } from '@/lib/validations'
 
 export function WallpaperGenerator() {
   const queryClient = useQueryClient()
@@ -34,7 +34,7 @@ export function WallpaperGenerator() {
     handleSubmit,
     watch,
     formState: { errors, isValid },
-  } = useForm<GenerateWallpaperInput>({
+  } = useForm<GenerateWallpaperFormInput, unknown, GenerateWallpaperInput>({
     resolver: zodResolver(generateWallpaperSchema),
     mode: 'onChange',
     defaultValues: { wifiSecurity: 'WPA' },

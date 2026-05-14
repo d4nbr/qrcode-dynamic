@@ -20,6 +20,7 @@ export const uploadTemplateSchema = z.object({
   description: z.string().max(300).optional(),
 })
 
-export type GenerateWallpaperInput = z.infer<typeof generateWallpaperSchema>
+export type GenerateWallpaperFormInput = z.input<typeof generateWallpaperSchema>
+export type GenerateWallpaperInput = z.output<typeof generateWallpaperSchema>
 export type PreviewQuery = z.infer<typeof previewQuerySchema>
 export type UploadTemplateInput = z.infer<typeof uploadTemplateSchema>
