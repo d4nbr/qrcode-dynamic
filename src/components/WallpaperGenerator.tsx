@@ -92,12 +92,12 @@ export function WallpaperGenerator() {
   }
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+    <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
       {/* Form panel */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+      <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#003366]">Gerar Wallpaper</h2>
-          <p className="text-sm text-gray-500 mt-1">Preencha os dados para criar o papel de parede institucional.</p>
+          <h2 className="font-bold text-2xl text-[#003366]">Gerar Wallpaper</h2>
+          <p className="mt-1 text-gray-500 text-sm">Preencha os dados para criar o papel de parede institucional.</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -112,20 +112,20 @@ export function WallpaperGenerator() {
                 </option>
               ))}
             </Select>
-            {errors.templateId && <p className="text-xs text-red-500">{errors.templateId.message}</p>}
+            {errors.templateId && <p className="text-red-500 text-xs">{errors.templateId.message}</p>}
             {!loadingTemplates && templates.length === 0 && (
-              <p className="text-xs text-amber-600">Nenhum template ativo. Cadastre um no painel Admin.</p>
+              <p className="text-amber-600 text-xs">Nenhum template ativo. Cadastre um no painel Admin.</p>
             )}
           </div>
 
           {/* Wi-Fi */}
           <div className="space-y-2">
             <Label htmlFor="wifiSsid">
-              <Wifi className="inline w-4 h-4 mr-1 mb-0.5" />
+              <Wifi className="mr-1 mb-0.5 inline h-4 w-4" />
               Nome da Rede Wi-Fi (SSID)
             </Label>
             <Input id="wifiSsid" placeholder="Ex: OAB-CENTRAL-2GHz" {...register('wifiSsid')} />
-            {errors.wifiSsid && <p className="text-xs text-red-500">{errors.wifiSsid.message}</p>}
+            {errors.wifiSsid && <p className="text-red-500 text-xs">{errors.wifiSsid.message}</p>}
           </div>
 
           {/* Security */}
@@ -153,18 +153,18 @@ export function WallpaperGenerator() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-700"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.wifiPassword && <p className="text-xs text-red-500">{errors.wifiPassword.message}</p>}
+              {errors.wifiPassword && <p className="text-red-500 text-xs">{errors.wifiPassword.message}</p>}
             </div>
           )}
 
           {/* Error */}
           {generateMutation.isError && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">
               {generateMutation.error.message}
             </div>
           )}
@@ -174,12 +174,12 @@ export function WallpaperGenerator() {
             <Button type="submit" className="flex-1" disabled={!isValid || generateMutation.isPending}>
               {generateMutation.isPending ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <RefreshCw className="h-4 w-4 animate-spin" />
                   Gerando...
                 </>
               ) : (
                 <>
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="h-4 w-4" />
                   Gerar Wallpaper
                 </>
               )}
@@ -187,14 +187,14 @@ export function WallpaperGenerator() {
 
             {generatedWallpaper && (
               <Button type="button" variant="gold" onClick={handleDownload} className="flex-1">
-                <Download className="w-4 h-4" />
+                <Download className="h-4 w-4" />
                 Baixar PNG
               </Button>
             )}
           </div>
 
           {generatedWallpaper && (
-            <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 text-sm">
               ✓ Wallpaper gerado com sucesso! Clique em &ldquo;Baixar PNG&rdquo; para salvar.
             </div>
           )}
@@ -202,10 +202,10 @@ export function WallpaperGenerator() {
       </div>
 
       {/* Preview panel */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+      <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-[#003366]">Preview</h2>
-          <p className="text-sm text-gray-500 mt-1">Visualização em tempo real do wallpaper gerado.</p>
+          <h2 className="font-bold text-2xl text-[#003366]">Preview</h2>
+          <p className="mt-1 text-gray-500 text-sm">Visualização em tempo real do wallpaper gerado.</p>
         </div>
         <WallpaperPreview previewUrl={previewUrl} savedUrl={generatedWallpaper?.publicUrl ?? null} />
       </div>
