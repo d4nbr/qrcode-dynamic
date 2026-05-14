@@ -16,16 +16,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col">
       {/* Header */}
       <header className="bg-[#003366] text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
             {/* Logo OAB Maranhão */}
             <Link href="/gerar" className="flex items-center gap-3">
               <Image src="/logo-oabma.png" alt="OAB Maranhão" width={120} height={38} className="object-contain" priority />
-              <div className="hidden sm:block h-8 w-px bg-white/20" />
-              <span className="hidden sm:block text-xs text-[#a0bcd8] leading-tight">QR Code Wallpaper WiFi</span>
+              <div className="hidden h-8 w-px bg-white/20 sm:block" />
+              <span className="hidden text-[#a0bcd8] text-xs leading-tight sm:block">QR Code Wallpaper WiFi</span>
             </Link>
 
             <nav className="flex items-center gap-1">
@@ -36,11 +36,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     key={href}
                     href={href}
                     className={cn(
-                      'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                      active ? 'bg-white/15 text-white' : 'text-[#a0bcd8] hover:text-white hover:bg-white/10'
+                      'flex items-center gap-2 rounded-lg px-4 py-2 font-medium text-sm transition-colors',
+                      active ? 'bg-white/15 text-white' : 'text-[#a0bcd8] hover:bg-white/10 hover:text-white'
                     )}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="h-4 w-4" />
                     <span className="hidden sm:inline">{label}</span>
                   </Link>
                 )
@@ -51,15 +51,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">{children}</main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <p className="text-xs text-gray-400">
+      <footer className="border-gray-200 border-t bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+          <p className="text-gray-400 text-xs">
             © {new Date().getFullYear()} Gerência de Tecnologia da Informação · Sistema Interno
           </p>
-          <p className="text-xs text-gray-400">Versão 1.0</p>
+          <p className="text-gray-400 text-xs">Versão 1.0</p>
         </div>
       </footer>
     </div>
