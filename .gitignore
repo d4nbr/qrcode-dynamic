@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# uploads — keep directory structure, ignore generated files
+/public/uploads/templates/*
+/public/uploads/wallpapers/*
+!/public/uploads/templates/.gitkeep
+!/public/uploads/wallpapers/.gitkeep
