@@ -31,7 +31,7 @@ export type GenerateWallpaperInput = {
 }
 
 export type GenerateImageParams = {
-  templatePath: string
+  templateBuffer: Buffer
   wifiSsid: string
   wifiPassword: string
   wifiSecurity: WifiSecurity

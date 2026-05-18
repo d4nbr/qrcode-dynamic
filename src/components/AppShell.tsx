@@ -56,10 +56,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Footer */}
       <footer className="border-gray-200 border-t bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-          <p className="text-gray-400 text-xs">
-            © {new Date().getFullYear()} Gerência de Tecnologia da Informação · Sistema Interno
-          </p>
-          <p className="text-gray-400 text-xs">Versão 1.0</p>
+          <p className="text-gray-400 text-xs">© {new Date().getFullYear()} Gerência de Tecnologia da Informação</p>
+          <p className="text-gray-400 text-xs">v1.0</p>
         </div>
       </footer>
     </div>

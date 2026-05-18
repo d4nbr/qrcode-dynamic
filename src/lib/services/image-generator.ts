@@ -105,7 +105,7 @@ async function buildTextOverlay(
 }
 
 export async function generateWallpaper(params: GenerateImageParams): Promise<Buffer> {
-  const { templatePath, wifiSsid, wifiPassword, wifiSecurity } = params
+  const { templateBuffer, wifiSsid, wifiPassword, wifiSecurity } = params
 
   const qrString = buildQrString(wifiSsid, wifiPassword, wifiSecurity)
 
@@ -114,7 +114,7 @@ export async function generateWallpaper(params: GenerateImageParams): Promise<Bu
     buildTextOverlay(wifiSsid, wifiPassword, wifiSecurity),
   ])
 
-  return sharp(templatePath)
+  return sharp(templateBuffer)
     .resize(OUT_W, OUT_H, { fit: 'fill' })
     .composite([
       { input: qrBuffer, left: sx(QR_LEFT_ORIG), top: sy(QR_TOP_ORIG) },

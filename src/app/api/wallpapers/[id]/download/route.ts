@@ -1,6 +1,6 @@
-import fs from 'node:fs'
 import { NextResponse } from 'next/server'
 import { wallpaperService } from '@/lib/services/wallpaper.service'
+import { downloadFile } from '@/lib/storage'
 import { sanitizeFilename } from '@/lib/utils'
 
 export const runtime = 'nodejs'
@@ -14,15 +14,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Wallpaper não encontrado.' }, { status: 404 })
     }
 
-    if (!fs.existsSync(wallpaper.storedPath ?? '')) {
-      return NextResponse.json({ error: 'Arquivo não encontrado no servidor.' }, { status: 404 })
-    }
-
-    const buffer = fs.readFileSync(wallpaper.storedPath!)
+    const buffer = await downloadFile(wallpaper.storedPath)
     const slug = sanitizeFilename(wallpaper.comarcaName)
     const filename = `oabma-${slug}-wifi.png`
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         'Content-Type': 'image/png',

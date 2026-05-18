@@ -1,29 +1,40 @@
-import fs from 'node:fs'
-import path from 'node:path'
+import { createClient } from '@supabase/supabase-js'
 
-export const storageRoot = path.join(process.cwd(), 'public', 'uploads')
-export const templatesDir = path.join(storageRoot, 'templates')
-export const wallpapersDir = path.join(storageRoot, 'wallpapers')
+const BUCKET = 'images'
 
-export function ensureDirs() {
-  ;[storageRoot, templatesDir, wallpapersDir].forEach(dir => {
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-  })
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+export async function uploadFile(storagePath: string, buffer: Buffer): Promise<string> {
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(storagePath, buffer, { contentType: 'image/png', upsert: false })
+
+  if (error) throw new Error(`Falha no upload para o Storage: ${error.message}`)
+
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath)
+  return data.publicUrl
 }
 
-export function toPublicUrl(absolutePath: string): string {
-  const publicRoot = path.join(process.cwd(), 'public')
-  return absolutePath.replace(publicRoot, '').replace(/\\/g, '/')
+export async function downloadFile(storagePath: string): Promise<Buffer> {
+  const { data, error } = await supabase.storage.from(BUCKET).download(storagePath)
+
+  if (error || !data) throw new Error(`Falha ao baixar do Storage: ${error?.message}`)
+
+  return Buffer.from(await data.arrayBuffer())
 }
 
-export function saveBuffer(absolutePath: string, buffer: Buffer): void {
-  fs.writeFileSync(absolutePath, buffer)
-}
-
-export function deleteFileIfExists(absolutePath: string): void {
+export async function deleteFile(storagePath: string): Promise<void> {
   try {
-    if (fs.existsSync(absolutePath)) fs.unlinkSync(absolutePath)
+    await supabase.storage.from(BUCKET).remove([storagePath])
   } catch {
     // silently ignore deletion errors
   }
+}
+
+export function getPublicUrl(storagePath: string): string {
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath)
+  return data.publicUrl
 }

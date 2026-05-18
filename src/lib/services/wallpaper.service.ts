@@ -1,8 +1,7 @@
-import path from 'node:path'
 import { templateRepository } from '@/lib/repositories/template.repository'
 import { wallpaperRepository } from '@/lib/repositories/wallpaper.repository'
 import { generateWallpaper } from '@/lib/services/image-generator'
-import { deleteFileIfExists, ensureDirs, saveBuffer, toPublicUrl, wallpapersDir } from '@/lib/storage'
+import { deleteFile, downloadFile, uploadFile } from '@/lib/storage'
 import type { GenerateWallpaperInput, PaginatedWallpapers, WallpaperDto } from '@/lib/types'
 import { buildQrString } from '@/lib/utils'
 
@@ -53,12 +52,9 @@ export const wallpaperService = {
     if (!template) throw new Error('Template não encontrado.')
     if (!template.isActive) throw new Error('Template inativo.')
 
-    return generateWallpaper({
-      templatePath: template.storedPath,
-      wifiSsid,
-      wifiPassword,
-      wifiSecurity,
-    })
+    const templateBuffer = await downloadFile(template.storedPath)
+
+    return generateWallpaper({ templateBuffer, wifiSsid, wifiPassword, wifiSecurity })
   },
 
   async generate(input: GenerateWallpaperInput): Promise<WallpaperDto> {
@@ -68,18 +64,17 @@ export const wallpaperService = {
 
     const qrContent = buildQrString(input.wifiSsid, input.wifiPassword, input.wifiSecurity)
 
+    const templateBuffer = await downloadFile(template.storedPath)
+
     const buffer = await generateWallpaper({
-      templatePath: template.storedPath,
+      templateBuffer,
       wifiSsid: input.wifiSsid,
       wifiPassword: input.wifiPassword,
       wifiSecurity: input.wifiSecurity,
     })
 
-    ensureDirs()
-
-    const filename = `${Date.now()}.png`
-    const storedPath = path.join(wallpapersDir, filename)
-    saveBuffer(storedPath, buffer)
+    const storagePath = `wallpapers/${Date.now()}.png`
+    const publicUrl = await uploadFile(storagePath, buffer)
 
     const wallpaper = await wallpaperRepository.create({
       comarcaName: input.comarcaName,
@@ -87,8 +82,8 @@ export const wallpaperService = {
       wifiPassword: input.wifiPassword,
       wifiSecurity: input.wifiSecurity,
       qrContent,
-      storedPath,
-      publicUrl: toPublicUrl(storedPath),
+      storedPath: storagePath,
+      publicUrl,
       templateId: input.templateId,
     })
 
@@ -99,7 +94,7 @@ export const wallpaperService = {
     const wallpaper = await wallpaperRepository.findById(id)
     if (!wallpaper) throw new Error('Wallpaper não encontrado.')
     await wallpaperRepository.delete(id)
-    deleteFileIfExists(wallpaper.storedPath)
+    await deleteFile(wallpaper.storedPath)
   },
 
   async getById(id: string): Promise<WallpaperDto | null> {

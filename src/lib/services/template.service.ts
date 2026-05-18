@@ -1,8 +1,7 @@
-import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import sharp from 'sharp'
 import { templateRepository } from '@/lib/repositories/template.repository'
-import { templatesDir, ensureDirs, saveBuffer, deleteFileIfExists, toPublicUrl } from '@/lib/storage'
+import { uploadFile, deleteFile } from '@/lib/storage'
 import { sanitizeFilename } from '@/lib/utils'
 import type { TemplateDto } from '@/lib/types'
 
@@ -53,22 +52,20 @@ export const templateService = {
       throw new Error('Não foi possível ler as dimensões da imagem.')
     }
 
-    ensureDirs()
-
     const slug = sanitizeFilename(name)
     const uuid = randomUUID().slice(0, 8)
     const filename = `${slug}-${uuid}.png`
-    const storedPath = path.join(templatesDir, filename)
+    const storagePath = `templates/${filename}`
 
     const pngBuffer = await sharp(buffer).png().toBuffer()
-    saveBuffer(storedPath, pngBuffer)
+    const publicUrl = await uploadFile(storagePath, pngBuffer)
 
     const template = await templateRepository.create({
       name,
       description: description || null,
       filename: file.name,
-      storedPath,
-      publicUrl: toPublicUrl(storedPath),
+      storedPath: storagePath,
+      publicUrl,
       widthPx: metadata.width,
       heightPx: metadata.height,
     })
@@ -90,6 +87,6 @@ export const templateService = {
     if (!template) throw new Error('Template não encontrado.')
 
     await templateRepository.delete(id)
-    deleteFileIfExists(template.storedPath)
+    await deleteFile(template.storedPath)
   },
 }
