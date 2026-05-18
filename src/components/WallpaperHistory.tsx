@@ -5,7 +5,7 @@ import { Download, Trash2, Wifi, Calendar, Building2, Loader2 } from 'lucide-rea
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate } from '@/lib/utils'
+import { formatDate, proxyImageUrl } from '@/lib/utils'
 import type { PaginatedWallpapers, WallpaperDto } from '@/lib/types'
 
 async function fetchWallpapers({ pageParam }: { pageParam?: string }): Promise<PaginatedWallpapers> {
@@ -94,7 +94,7 @@ function WallpaperCard({ item, onDelete, deleting }: { item: WallpaperDto; onDel
       <div className="aspect-video bg-gray-100 relative overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={item.publicUrl}
+          src={proxyImageUrl(item.publicUrl)}
           alt={item.comarcaName}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"

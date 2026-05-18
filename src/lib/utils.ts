@@ -35,3 +35,12 @@ export function buildQrString(ssid: string, password: string, security: string):
   }
   return `WIFI:T:${security};S:${escapeWifiField(ssid)};P:${escapeWifiField(password)};;`
 }
+
+export function proxyImageUrl(url: string): string {
+  if (!url || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('/')) return url
+  try {
+    const { protocol } = new URL(url)
+    if (protocol === 'http:') return `/api/image-proxy?url=${encodeURIComponent(url)}`
+  } catch {}
+  return url
+}

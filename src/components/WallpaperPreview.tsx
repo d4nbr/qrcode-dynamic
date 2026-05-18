@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ImageIcon, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { proxyImageUrl } from '@/lib/utils'
 
 type Props = {
   previewUrl: string | null
@@ -53,7 +54,7 @@ export function WallpaperPreview({ previewUrl, savedUrl }: Props) {
         // eslint-disable-next-line @next/next/no-img-element
         <img
           key={displayUrl}
-          src={displayUrl}
+          src={proxyImageUrl(displayUrl)}
           alt="Preview do wallpaper"
           className="w-full h-full object-cover"
           onLoadStart={() => setLoading(true)}
