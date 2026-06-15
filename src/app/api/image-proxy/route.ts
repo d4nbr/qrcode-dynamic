@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const ALLOWED_HOSTNAME = 'supabasekong-z12enjlk87cbbfsed61x0myg.185.249.227.151.sslip.io'
+const ALLOWED_HOSTNAME = 'quanta-minio.esqcza.easypanel.host'
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url')

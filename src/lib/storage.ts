@@ -1,40 +1,53 @@
-import { createClient } from '@supabase/supabase-js'
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 
-const BUCKET = 'images'
+const BUCKET = process.env.MINIO_BUCKET ?? 'images'
+const ENDPOINT = process.env.MINIO_ENDPOINT!
 
-export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const s3 = new S3Client({
+  endpoint: ENDPOINT,
+  region: 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.MINIO_ACCESS_KEY!,
+    secretAccessKey: process.env.MINIO_SECRET_KEY!,
+  },
+  forcePathStyle: true,
+})
 
 export async function uploadFile(storagePath: string, buffer: Buffer): Promise<string> {
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, buffer, { contentType: 'image/png', upsert: false })
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: storagePath,
+      Body: buffer,
+      ContentType: 'image/png',
+    }),
+  )
 
-  if (error) throw new Error(`Falha no upload para o Storage: ${error.message}`)
-
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath)
-  return data.publicUrl
+  return getPublicUrl(storagePath)
 }
 
 export async function downloadFile(storagePath: string): Promise<Buffer> {
-  const { data, error } = await supabase.storage.from(BUCKET).download(storagePath)
+  const response = await s3.send(
+    new GetObjectCommand({
+      Bucket: BUCKET,
+      Key: storagePath,
+    }),
+  )
 
-  if (error || !data) throw new Error(`Falha ao baixar do Storage: ${error?.message}`)
+  if (!response.Body) throw new Error(`Falha ao baixar do Storage: objeto vazio`)
 
-  return Buffer.from(await data.arrayBuffer())
+  const bytes = await response.Body.transformToByteArray()
+  return Buffer.from(bytes)
 }
 
 export async function deleteFile(storagePath: string): Promise<void> {
   try {
-    await supabase.storage.from(BUCKET).remove([storagePath])
+    await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: storagePath }))
   } catch {
     // silently ignore deletion errors
   }
 }
 
 export function getPublicUrl(storagePath: string): string {
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath)
-  return data.publicUrl
+  return `${ENDPOINT}/${BUCKET}/${storagePath}`
 }
