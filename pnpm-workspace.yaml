@@ -2,6 +2,5 @@ allowBuilds:
   '@prisma/engines': true
   '@napi-rs/canvas': true
   prisma: true
-ignoredBuiltDependencies:
-  - sharp
-  - unrs-resolver
+  sharp: false
+  unrs-resolver: false
