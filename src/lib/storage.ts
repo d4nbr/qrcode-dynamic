@@ -2,6 +2,7 @@ import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } fro
 
 const BUCKET = process.env.MINIO_BUCKET ?? 'images'
 const ENDPOINT = process.env.MINIO_ENDPOINT!
+const PUBLIC_URL = process.env.MINIO_PUBLIC_URL ?? ENDPOINT
 
 const s3 = new S3Client({
   endpoint: ENDPOINT,
@@ -49,5 +50,5 @@ export async function deleteFile(storagePath: string): Promise<void> {
 }
 
 export function getPublicUrl(storagePath: string): string {
-  return `${ENDPOINT}/${BUCKET}/${storagePath}`
+  return `${PUBLIC_URL}/${BUCKET}/${storagePath}`
 }
