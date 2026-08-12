@@ -24,7 +24,7 @@ model Template {
 
 model Wallpaper {
   id           String   @id @default(cuid())
-  comarcaName  String
+  location     String
   wifiSsid     String
   wifiPassword String
   wifiSecurity String   @default("WPA")

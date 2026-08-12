@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, Eye, EyeOff, RefreshCw, Wifi } from 'lucide-react'
+import { Download, Eye, EyeOff, MapPin, RefreshCw, Wifi } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
@@ -101,6 +101,16 @@ export function WallpaperGenerator() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Localização */}
+          <div className="space-y-2">
+            <Label htmlFor="location">
+              <MapPin className="mr-1 mb-0.5 inline h-4 w-4" />
+              Localização
+            </Label>
+            <Input id="location" placeholder="Ex: Sede São Luís — Sala de Atendimento" {...register('location')} />
+            {errors.location && <p className="text-red-500 text-xs">{errors.location.message}</p>}
+          </div>
+
           {/* Template */}
           <div className="space-y-2">
             <Label htmlFor="templateId">Template Institucional</Label>

@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import type { Wallpaper } from '@prisma/client'
 
 type CreateWallpaperData = {
-  comarcaName: string
+  location: string
   wifiSsid: string
   wifiPassword: string
   wifiSecurity: string
@@ -11,6 +11,8 @@ type CreateWallpaperData = {
   publicUrl: string
   templateId: string
 }
+
+type UpdateWallpaperData = Partial<CreateWallpaperData>
 
 type WallpaperWithTemplate = Wallpaper & {
   template: { name: string }
@@ -36,6 +38,14 @@ export const wallpaperRepository = {
 
   create(data: CreateWallpaperData): Promise<Wallpaper> {
     return prisma.wallpaper.create({ data })
+  },
+
+  update(id: string, data: UpdateWallpaperData): Promise<WallpaperWithTemplate> {
+    return prisma.wallpaper.update({
+      where: { id },
+      data,
+      include: { template: { select: { name: true } } },
+    }) as Promise<WallpaperWithTemplate>
   },
 
   delete(id: string): Promise<Wallpaper> {

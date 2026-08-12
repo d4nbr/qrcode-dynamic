@@ -231,6 +231,33 @@ paths:
     parameters:
       - $ref: '#/components/parameters/Id'
 
+    patch:
+      tags: [Wallpapers]
+      summary: Editar wallpaper
+      description: >
+        Atualiza um wallpaper já gerado. Alterar `wifiSsid`, `wifiPassword`,
+        `wifiSecurity` ou `templateId` regera a imagem e o QR Code, publica o
+        PNG em um novo caminho no storage e remove o anterior — `publicUrl` e
+        `storedPath` mudam na resposta. Alterar apenas `location` atualiza só o
+        registro, preservando a imagem existente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWallpaperInput'
+      responses:
+        '200':
+          description: Wallpaper atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallpaper'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
     delete:
       tags: [Wallpapers]
       summary: Remover wallpaper
@@ -255,7 +282,9 @@ paths:
       summary: Download do wallpaper
       description: >
         Retorna o arquivo PNG com header `Content-Disposition: attachment`.
-        O nome do arquivo segue o padrão `oabma-{comarca}-wifi.png`.
+        O nome do arquivo segue o padrão `oabma-{localizacao}-wifi.png`, ou
+        `oabma-wallpaper-wifi.png` quando a localização não tem caracteres
+        aproveitáveis para o nome.
       responses:
         '200':
           description: Arquivo PNG para download
@@ -314,8 +343,9 @@ components:
         id:
           type: string
           format: uuid
-        comarcaName:
+        location:
           type: string
+          description: Local onde o wallpaper foi implantado
         wifiSsid:
           type: string
         wifiPassword:
@@ -352,16 +382,16 @@ components:
 
     GenerateWallpaperInput:
       type: object
-      required: [templateId, wifiSsid, wifiPassword]
+      required: [templateId, location, wifiSsid, wifiPassword]
       properties:
         templateId:
           type: string
           description: ID do template a ser usado
-        comarcaName:
+        location:
           type: string
+          minLength: 1
           maxLength: 80
-          default: ''
-          description: Nome da comarca (opcional)
+          description: Local onde o wallpaper será implantado
         wifiSsid:
           type: string
           minLength: 1
@@ -375,6 +405,32 @@ components:
           type: string
           enum: [WPA, WEP, nopass]
           default: WPA
+
+    UpdateWallpaperInput:
+      type: object
+      minProperties: 1
+      description: >
+        Mesmos campos e mesmas regras de `GenerateWallpaperInput`, todos
+        opcionais. Ao menos um campo deve ser informado.
+      properties:
+        templateId:
+          type: string
+          description: ID do template. Deve estar ativo.
+        location:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: Local onde o wallpaper foi implantado
+        wifiSsid:
+          type: string
+          minLength: 1
+          maxLength: 32
+        wifiPassword:
+          type: string
+          maxLength: 63
+        wifiSecurity:
+          type: string
+          enum: [WPA, WEP, nopass]
 
     Success:
       type: object

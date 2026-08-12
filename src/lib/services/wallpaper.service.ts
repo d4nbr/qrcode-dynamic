@@ -1,13 +1,27 @@
+import { randomUUID } from 'node:crypto'
 import { templateRepository } from '@/lib/repositories/template.repository'
 import { wallpaperRepository } from '@/lib/repositories/wallpaper.repository'
 import { generateWallpaper } from '@/lib/services/image-generator'
 import { deleteFile, downloadFile, uploadFile } from '@/lib/storage'
-import type { GenerateWallpaperInput, PaginatedWallpapers, WallpaperDto } from '@/lib/types'
+import type { GenerateWallpaperInput, PaginatedWallpapers, UpdateWallpaperInput, WallpaperDto, WifiSecurity } from '@/lib/types'
 import { buildQrString } from '@/lib/utils'
+
+// Caminho único por publicação: evita colisão entre requisições simultâneas e
+// garante que a URL nova invalide o cache imutável do proxy de imagem.
+function buildStoragePath(): string {
+  return `wallpapers/${randomUUID()}.png`
+}
+
+async function loadActiveTemplate(templateId: string) {
+  const template = await templateRepository.findById(templateId)
+  if (!template) throw new Error('Template não encontrado.')
+  if (!template.isActive) throw new Error('Template inativo.')
+  return template
+}
 
 function toDto(w: {
   id: string
-  comarcaName: string
+  location: string
   wifiSsid: string
   wifiPassword: string
   wifiSecurity: string
@@ -19,7 +33,7 @@ function toDto(w: {
 }): WallpaperDto {
   return {
     id: w.id,
-    comarcaName: w.comarcaName,
+    location: w.location,
     wifiSsid: w.wifiSsid,
     wifiPassword: w.wifiPassword,
     wifiSecurity: w.wifiSecurity,
@@ -46,11 +60,9 @@ export const wallpaperService = {
     templateId: string,
     wifiSsid: string,
     wifiPassword: string,
-    wifiSecurity: 'WPA' | 'WEP' | 'nopass'
+    wifiSecurity: WifiSecurity
   ): Promise<Buffer> {
-    const template = await templateRepository.findById(templateId)
-    if (!template) throw new Error('Template não encontrado.')
-    if (!template.isActive) throw new Error('Template inativo.')
+    const template = await loadActiveTemplate(templateId)
 
     const templateBuffer = await downloadFile(template.storedPath)
 
@@ -58,9 +70,7 @@ export const wallpaperService = {
   },
 
   async generate(input: GenerateWallpaperInput): Promise<WallpaperDto> {
-    const template = await templateRepository.findById(input.templateId)
-    if (!template) throw new Error('Template não encontrado.')
-    if (!template.isActive) throw new Error('Template inativo.')
+    const template = await loadActiveTemplate(input.templateId)
 
     const qrContent = buildQrString(input.wifiSsid, input.wifiPassword, input.wifiSecurity)
 
@@ -73,11 +83,11 @@ export const wallpaperService = {
       wifiSecurity: input.wifiSecurity,
     })
 
-    const storagePath = `wallpapers/${Date.now()}.png`
+    const storagePath = buildStoragePath()
     const publicUrl = await uploadFile(storagePath, buffer)
 
     const wallpaper = await wallpaperRepository.create({
-      comarcaName: input.comarcaName,
+      location: input.location,
       wifiSsid: input.wifiSsid,
       wifiPassword: input.wifiPassword,
       wifiSecurity: input.wifiSecurity,
@@ -88,6 +98,58 @@ export const wallpaperService = {
     })
 
     return toDto({ ...wallpaper, template: { name: template.name } })
+  },
+
+  async update(id: string, input: UpdateWallpaperInput): Promise<WallpaperDto> {
+    const current = await wallpaperRepository.findById(id)
+    if (!current) throw new Error('Wallpaper não encontrado.')
+
+    const next = {
+      templateId: input.templateId ?? current.templateId,
+      location: input.location ?? current.location,
+      wifiSsid: input.wifiSsid ?? current.wifiSsid,
+      wifiPassword: input.wifiPassword ?? current.wifiPassword,
+      wifiSecurity: (input.wifiSecurity ?? current.wifiSecurity) as WifiSecurity,
+    }
+
+    // Só estes campos estão embutidos no PNG e no QR Code. Mudar apenas a
+    // localização é atualização de metadado — não regera imagem nem toca no storage.
+    const needsRegeneration =
+      next.templateId !== current.templateId ||
+      next.wifiSsid !== current.wifiSsid ||
+      next.wifiPassword !== current.wifiPassword ||
+      next.wifiSecurity !== current.wifiSecurity
+
+    if (!needsRegeneration) {
+      const updated = await wallpaperRepository.update(id, { location: next.location })
+      return toDto(updated)
+    }
+
+    const template = await loadActiveTemplate(next.templateId)
+
+    const templateBuffer = await downloadFile(template.storedPath)
+    const buffer = await generateWallpaper({
+      templateBuffer,
+      wifiSsid: next.wifiSsid,
+      wifiPassword: next.wifiPassword,
+      wifiSecurity: next.wifiSecurity,
+    })
+
+    // Publica no caminho novo antes de atualizar o registro, e remove o antigo
+    // só depois: um objeto órfão é preferível a um registro apontando para nada.
+    const storagePath = buildStoragePath()
+    const publicUrl = await uploadFile(storagePath, buffer)
+
+    const updated = await wallpaperRepository.update(id, {
+      ...next,
+      qrContent: buildQrString(next.wifiSsid, next.wifiPassword, next.wifiSecurity),
+      storedPath: storagePath,
+      publicUrl,
+    })
+
+    await deleteFile(current.storedPath)
+
+    return toDto(updated)
   },
 
   async delete(id: string): Promise<void> {

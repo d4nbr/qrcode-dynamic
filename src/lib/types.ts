@@ -11,7 +11,7 @@ export type TemplateDto = {
 
 export type WallpaperDto = {
   id: string
-  comarcaName: string
+  location: string
   wifiSsid: string
   wifiPassword: string
   wifiSecurity: string
@@ -24,10 +24,18 @@ export type WallpaperDto = {
 
 export type GenerateWallpaperInput = {
   templateId: string
-  comarcaName: string
+  location: string
   wifiSsid: string
   wifiPassword: string
   wifiSecurity: WifiSecurity
+}
+
+export type UpdateWallpaperInput = {
+  templateId?: string
+  location?: string
+  wifiSsid?: string
+  wifiPassword?: string
+  wifiSecurity?: WifiSecurity
 }
 
 export type GenerateImageParams = {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { wallpaperService } from '@/lib/services/wallpaper.service'
 import { downloadFile } from '@/lib/storage'
-import { sanitizeFilename } from '@/lib/utils'
+import { buildDownloadFilename } from '@/lib/utils'
 
 export const runtime = 'nodejs'
 
@@ -15,8 +15,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     }
 
     const buffer = await downloadFile(wallpaper.storedPath)
-    const slug = sanitizeFilename(wallpaper.comarcaName)
-    const filename = `oabma-${slug}-wifi.png`
+    const filename = buildDownloadFilename(wallpaper.location)
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,

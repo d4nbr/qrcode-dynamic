@@ -25,6 +25,11 @@ export function sanitizeFilename(name: string): string {
     .slice(0, 60)
 }
 
+export function buildDownloadFilename(location: string): string {
+  const slug = sanitizeFilename(location)
+  return slug ? `oabma-${slug}-wifi.png` : 'oabma-wallpaper-wifi.png'
+}
+
 export function escapeWifiField(value: string): string {
   return value.replace(/[\\;,"]/g, char => `\\${char}`)
 }

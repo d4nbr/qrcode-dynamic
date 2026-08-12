@@ -1,7 +1,9 @@
 'use client'
 
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Download, Trash2, Wifi, Calendar, Building2, Loader2 } from 'lucide-react'
+import { Calendar, Download, Loader2, MapPin, Pencil, Trash2, Wifi } from 'lucide-react'
+import { useState } from 'react'
+import { WallpaperEditDialog } from '@/components/WallpaperEditDialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -18,6 +20,7 @@ async function fetchWallpapers({ pageParam }: { pageParam?: string }): Promise<P
 
 export function WallpaperHistory() {
   const queryClient = useQueryClient()
+  const [editing, setEditing] = useState<WallpaperDto | null>(null)
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } = useInfiniteQuery({
     queryKey: ['wallpapers'],
@@ -57,11 +60,14 @@ export function WallpaperHistory() {
           <WallpaperCard
             key={item.id}
             item={item}
+            onEdit={() => setEditing(item)}
             onDelete={() => deleteMutation.mutate(item.id)}
             deleting={deleteMutation.isPending && deleteMutation.variables === item.id}
           />
         ))}
       </div>
+
+      {editing && <WallpaperEditDialog wallpaper={editing} onClose={() => setEditing(null)} />}
 
       {hasNextPage && (
         <div className="text-center">
@@ -81,7 +87,17 @@ export function WallpaperHistory() {
   )
 }
 
-function WallpaperCard({ item, onDelete, deleting }: { item: WallpaperDto; onDelete: () => void; deleting: boolean }) {
+function WallpaperCard({
+  item,
+  onEdit,
+  onDelete,
+  deleting,
+}: {
+  item: WallpaperDto
+  onEdit: () => void
+  onDelete: () => void
+  deleting: boolean
+}) {
   const handleDownload = () => {
     const link = document.createElement('a')
     link.href = `/api/wallpapers/${item.id}/download`
@@ -95,7 +111,7 @@ function WallpaperCard({ item, onDelete, deleting }: { item: WallpaperDto; onDel
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={proxyImageUrl(item.publicUrl)}
-          alt={item.comarcaName}
+          alt={item.location}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
@@ -104,8 +120,11 @@ function WallpaperCard({ item, onDelete, deleting }: { item: WallpaperDto; onDel
       {/* Info */}
       <div className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="font-semibold text-[#003366] text-sm leading-tight">{item.comarcaName}</p>
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 font-semibold text-[#003366] text-sm leading-tight">
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{item.location}</span>
+            </p>
             <p className="text-xs text-gray-400 mt-0.5">{item.templateName}</p>
           </div>
           <Badge variant="secondary">{item.wifiSecurity}</Badge>
@@ -126,6 +145,9 @@ function WallpaperCard({ item, onDelete, deleting }: { item: WallpaperDto; onDel
           <Button size="sm" variant="outline" className="flex-1" onClick={handleDownload}>
             <Download className="w-3.5 h-3.5" />
             Baixar
+          </Button>
+          <Button size="sm" variant="outline" onClick={onEdit} aria-label="Editar wallpaper">
+            <Pencil className="w-3.5 h-3.5" />
           </Button>
           <Button size="sm" variant="destructive" onClick={onDelete} disabled={deleting}>
             {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
