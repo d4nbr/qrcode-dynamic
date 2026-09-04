@@ -1,12 +1,21 @@
 FROM node:22-bookworm-slim AS base
 
+# Prisma precisa do OpenSSL em tempo de instalação/build e também no runtime.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # ─── Dependências ────────────────────────────────────────────────────────────
 FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-RUN corepack enable pnpm && pnpm install --frozen-lockfile
+
+# O sharp 0.33.5 é usado para manter compatibilidade com CPUs x86-64 antigas.
+# Como o lockfile ainda referencia a versão anterior, permitimos que o pnpm
+# reconcilie o lock durante o build em vez de abortar com --frozen-lockfile.
+RUN corepack enable pnpm && pnpm install --no-frozen-lockfile
 
 # ─── Build ───────────────────────────────────────────────────────────────────
 FROM base AS builder
