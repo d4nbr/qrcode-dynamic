@@ -1,8 +1,9 @@
 FROM node:22-bookworm-slim AS base
 
 # Prisma precisa do OpenSSL em tempo de instalação/build e também no runtime.
+# O curl é usado pelo healthcheck do Coolify.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && apt-get install -y --no-install-recommends openssl ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
 # ─── Dependências ────────────────────────────────────────────────────────────
