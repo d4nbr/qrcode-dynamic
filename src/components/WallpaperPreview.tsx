@@ -1,77 +1,57 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ImageIcon, Loader2 } from 'lucide-react'
-import { Skeleton } from '@/components/ui/skeleton'
+import { ImageIcon, Move } from 'lucide-react'
+import { QrCardPositioner, useQrCardImage } from '@/components/QrCardPositioner'
+import { Button } from '@/components/ui/button'
+import type { QrPlacement } from '@/lib/qr-placement'
+import type { QrCardContent, TemplateDto } from '@/lib/types'
 import { proxyImageUrl } from '@/lib/utils'
 
 type Props = {
-  previewUrl: string | null
+  template: TemplateDto | null
+  content: QrCardContent
+  placement: QrPlacement
+  onPlacementChange: (placement: QrPlacement) => void
   savedUrl: string | null
+  onAdjust: () => void
 }
 
-export function WallpaperPreview({ previewUrl, savedUrl }: Props) {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(false)
-  const [imgSrc, setImgSrc] = useState<string | null>(null)
+export function WallpaperPreview({ template, content, placement, onPlacementChange, savedUrl, onAdjust }: Props) {
+  const card = useQrCardImage(template ? content : null)
 
-  useEffect(() => {
-    if (!previewUrl) {
-      setImgSrc(null)
-      setError(false)
-      return
-    }
-    setLoading(true)
-    setError(false)
-    setImgSrc(previewUrl)
-  }, [previewUrl])
-
-  if (!imgSrc && !savedUrl) {
+  if (savedUrl) {
     return (
-      <div className="aspect-video w-full rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-3 text-gray-400">
-        <ImageIcon className="w-12 h-12" />
-        <p className="text-sm font-medium">Preencha o formulário para visualizar</p>
+      <div className="space-y-3">
+        <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-900">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={proxyImageUrl(savedUrl)} alt="Wallpaper gerado" className="h-full w-full object-cover" />
+          <div className="absolute right-2 bottom-2 rounded-md bg-black/50 px-2 py-1 text-white text-xs">1920 × 1080</div>
+        </div>
+        <Button type="button" variant="outline" size="sm" onClick={onAdjust}>
+          <Move className="h-3.5 w-3.5" />
+          Ajustar posição
+        </Button>
       </div>
     )
   }
 
-  const displayUrl = savedUrl ?? imgSrc
+  if (!template) {
+    return (
+      <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-gray-200 border-dashed bg-gray-50 text-gray-400">
+        <ImageIcon className="h-12 w-12" />
+        <p className="font-medium text-sm">Escolha um template para visualizar</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-900">
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60 z-10">
-          <Loader2 className="w-8 h-8 text-white animate-spin" />
-        </div>
-      )}
-      {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-red-400 bg-gray-900">
-          <ImageIcon className="w-10 h-10" />
-          <p className="text-sm">Erro ao gerar preview</p>
-        </div>
-      )}
-      {displayUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={displayUrl}
-          src={proxyImageUrl(displayUrl)}
-          alt="Preview do wallpaper"
-          className="w-full h-full object-cover"
-          onLoadStart={() => setLoading(true)}
-          onLoad={() => setLoading(false)}
-          onError={() => {
-            setLoading(false)
-            setError(true)
-          }}
-        />
-      )}
-      {!loading && !error && displayUrl && (
-        <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-md">1920 × 1080</div>
-      )}
-    </div>
+    <QrCardPositioner
+      backgroundUrl={template.publicUrl}
+      cardUrl={card.url}
+      cardError={card.error}
+      placement={placement}
+      hasPassword={content.wifiSecurity !== 'nopass'}
+      onChange={onPlacementChange}
+    />
   )
-}
-
-export function WallpaperPreviewSkeleton() {
-  return <Skeleton className="aspect-video w-full rounded-xl" />
 }

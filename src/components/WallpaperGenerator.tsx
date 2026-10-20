@@ -3,20 +3,21 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, Eye, EyeOff, MapPin, RefreshCw, Wifi } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { SAMPLE_CARD_CONTENT } from '@/components/QrCardPositioner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { WallpaperPreview } from '@/components/WallpaperPreview'
-import type { TemplateDto, WallpaperDto } from '@/lib/types'
+import { fitPlacement, LEGACY_PLACEMENT, type QrPlacement, storedPlacement } from '@/lib/qr-placement'
+import type { QrCardContent, TemplateDto, WallpaperDto } from '@/lib/types'
 import { type GenerateWallpaperFormInput, type GenerateWallpaperInput, generateWallpaperSchema } from '@/lib/validations'
 
 export function WallpaperGenerator() {
   const queryClient = useQueryClient()
   const [showPassword, setShowPassword] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [generatedWallpaper, setGeneratedWallpaper] = useState<WallpaperDto | null>(null)
 
   const { data: templates = [], isLoading: loadingTemplates } = useQuery<TemplateDto[]>({
@@ -33,33 +34,67 @@ export function WallpaperGenerator() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isValid },
   } = useForm<GenerateWallpaperFormInput, unknown, GenerateWallpaperInput>({
     resolver: zodResolver(generateWallpaperSchema),
     mode: 'onChange',
-    defaultValues: { wifiSecurity: 'WPA' },
+    defaultValues: { wifiSecurity: 'WPA', ...LEGACY_PLACEMENT },
   })
 
-  const [templateId, wifiSsid, wifiPassword, wifiSecurity] = watch(['templateId', 'wifiSsid', 'wifiPassword', 'wifiSecurity'])
+  const [templateId, wifiSsid, wifiPassword, wifiSecurity, qrLeft, qrTop, qrSize] = watch([
+    'templateId',
+    'wifiSsid',
+    'wifiPassword',
+    'wifiSecurity',
+    'qrLeft',
+    'qrTop',
+    'qrSize',
+  ])
 
-  const buildPreviewUrl = useCallback(() => {
-    if (!templateId || !wifiSsid) return null
-    const params = new URLSearchParams({
-      templateId,
-      ssid: wifiSsid,
-      password: wifiPassword ?? '',
-      security: wifiSecurity ?? 'WPA',
-    })
-    return `/api/wallpapers/preview?${params.toString()}`
-  }, [templateId, wifiSsid, wifiPassword, wifiSecurity])
+  const template = templates.find(t => t.id === templateId) ?? null
+  const security = wifiSecurity ?? 'WPA'
+  // O cartão sem senha é mais baixo: a posição exibida e enviada já vem encaixada.
+  const placement = fitPlacement(
+    {
+      qrLeft: qrLeft ?? LEGACY_PLACEMENT.qrLeft,
+      qrTop: qrTop ?? LEGACY_PLACEMENT.qrTop,
+      qrSize: qrSize ?? LEGACY_PLACEMENT.qrSize,
+    },
+    security !== 'nopass'
+  )
 
+  // Até o SSID ser preenchido, o cartão mostra texto de exemplo.
+  const cardContent: QrCardContent = wifiSsid
+    ? { wifiSsid, wifiPassword: security === 'nopass' ? '' : (wifiPassword ?? ''), wifiSecurity: security }
+    : { ...SAMPLE_CARD_CONTENT, wifiSecurity: security }
+
+  const setPlacement = useCallback(
+    (next: QrPlacement) => {
+      setValue('qrLeft', next.qrLeft)
+      setValue('qrTop', next.qrTop)
+      setValue('qrSize', next.qrSize)
+    },
+    [setValue]
+  )
+
+  // Ao escolher outro template, o cartão vai para o padrão daquela arte.
+  // A ref evita repetir isso quando a lista de templates é recarregada.
+  const appliedTemplateId = useRef<string | null>(null)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setPreviewUrl(buildPreviewUrl())
-      setGeneratedWallpaper(null)
-    }, 700)
-    return () => clearTimeout(timer)
-  }, [buildPreviewUrl])
+    if (!template || appliedTemplateId.current === template.id) return
+    appliedTemplateId.current = template.id
+    setPlacement(storedPlacement(template))
+  }, [template, setPlacement])
+
+  // Mudar o que vai para a imagem (tudo menos a localização) volta a prévia
+  // do wallpaper já gerado para o modo de ajuste.
+  useEffect(() => {
+    const subscription = watch((_values, { name }) => {
+      if (name !== 'location') setGeneratedWallpaper(null)
+    })
+    return () => subscription.unsubscribe()
+  }, [watch])
 
   const generateMutation = useMutation({
     mutationFn: async (data: GenerateWallpaperInput) => {
@@ -81,7 +116,7 @@ export function WallpaperGenerator() {
   })
 
   const onSubmit = (data: GenerateWallpaperInput) => {
-    generateMutation.mutate(data)
+    generateMutation.mutate({ ...data, ...placement })
   }
 
   const handleDownload = () => {
@@ -215,9 +250,16 @@ export function WallpaperGenerator() {
       <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
         <div className="mb-6">
           <h2 className="font-bold text-2xl text-[#003366]">Preview</h2>
-          <p className="mt-1 text-gray-500 text-sm">Visualização em tempo real do wallpaper gerado.</p>
+          <p className="mt-1 text-gray-500 text-sm">Posicione o cartão do QR sobre a arte. A imagem gerada sai igual à prévia.</p>
         </div>
-        <WallpaperPreview previewUrl={previewUrl} savedUrl={generatedWallpaper?.publicUrl ?? null} />
+        <WallpaperPreview
+          template={template}
+          content={cardContent}
+          placement={placement}
+          onPlacementChange={setPlacement}
+          savedUrl={generatedWallpaper?.publicUrl ?? null}
+          onAdjust={() => setGeneratedWallpaper(null)}
+        />
       </div>
     </div>
   )

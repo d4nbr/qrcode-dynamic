@@ -2,124 +2,99 @@ import path from 'node:path'
 import { createCanvas, GlobalFonts } from '@napi-rs/canvas'
 import QRCode from 'qrcode'
 import sharp from 'sharp'
-import type { GenerateImageParams } from '@/lib/types'
+import { CARD_LAYOUT, cardScale, cardSize, fitPlacement, OUTPUT_HEIGHT, OUTPUT_WIDTH } from '@/lib/qr-placement'
+import type { GenerateImageParams, QrCardContent } from '@/lib/types'
 import { buildQrString } from '@/lib/utils'
-
-// oabma-template-wallpaper.png native resolution
-const ORIG_W = 1672
-const ORIG_H = 941
-const OUT_W = 1920
-const OUT_H = 1080
-
-function sx(x: number) { return Math.round(x * (OUT_W / ORIG_W)) }
-function sy(y: number) { return Math.round(y * (OUT_H / ORIG_H)) }
-
-// White content rectangle measured by pixel analysis of oabma-template-wallpaper.png
-const WHITE = { left: 711, top: 230, right: 1035, bottom: 733 } as const
-const WHITE_W = WHITE.right - WHITE.left   // 324 px in original
-const PAD = 18                             // inner padding (original px)
-
-// QR code fills usable width, anchored at top of white area
-const QR_SIZE_ORIG = WHITE_W - PAD * 2                              // 288
-const QR_LEFT_ORIG = WHITE.left + Math.floor((WHITE_W - QR_SIZE_ORIG) / 2) // 729
-const QR_TOP_ORIG  = WHITE.top + PAD                               // 248
-
-// Text block starts just below QR (original-coord y)
-const TEXT_Y_ORIG  = QR_TOP_ORIG + QR_SIZE_ORIG + PAD             // 554
-const CENTER_X_ORIG = WHITE.left + WHITE_W / 2                    // 873
 
 let fontsRegistered = false
 
 function registerFonts() {
   if (fontsRegistered) return
   const fontsDir = path.join(process.cwd(), 'public', 'fonts')
-  GlobalFonts.registerFromPath(path.join(fontsDir, 'GeistBold.ttf'),    'GeistBold')
+  GlobalFonts.registerFromPath(path.join(fontsDir, 'GeistBold.ttf'), 'GeistBold')
   GlobalFonts.registerFromPath(path.join(fontsDir, 'GeistRegular.ttf'), 'GeistRegular')
   fontsRegistered = true
 }
 
-async function buildQrBuffer(qrString: string): Promise<Buffer> {
+async function buildQrBuffer(qrString: string, size: number): Promise<Buffer> {
   return QRCode.toBuffer(qrString, {
     type: 'png',
-    width: sx(QR_SIZE_ORIG),
+    width: size,
     margin: 1,
     errorCorrectionLevel: 'H',
     color: { dark: '#001A40', light: '#FFFFFF' },
   }) as Promise<Buffer>
 }
 
-async function buildTextOverlay(
-  wifiSsid: string,
-  wifiPassword: string,
-  wifiSecurity: string,
-): Promise<Buffer> {
+// Cartão branco com o QR, o nome da rede e a senha. O texto é desenhado nas
+// coordenadas do layout de escala 1, com o contexto escalado; o QR é colado
+// depois, no tamanho exato, para não ser reamostrado.
+export async function renderQrCard(content: QrCardContent, qrSize: number): Promise<Buffer> {
   registerFonts()
 
-  const canvas = createCanvas(OUT_W, OUT_H)
+  const { wifiSsid, wifiPassword, wifiSecurity } = content
+  const hasPassword = wifiSecurity !== 'nopass'
+  const scale = cardScale(qrSize)
+  const { width, height } = cardSize(qrSize, hasPassword)
+  const L = CARD_LAYOUT
+
+  const canvas = createCanvas(width, height)
   const ctx = canvas.getContext('2d')
 
-  // Output-space coordinates for the text block
-  const cx    = sx(CENTER_X_ORIG)
-  const maxW  = sx(WHITE_W - PAD * 2)
-  const lineX = sx(WHITE.left + PAD)
+  ctx.fillStyle = '#FFFFFF'
+  ctx.beginPath()
+  ctx.roundRect(0, 0, width, height, L.radius * scale)
+  ctx.fill()
 
-  ctx.textAlign    = 'center'
+  ctx.scale(scale, scale)
+  ctx.textAlign = 'center'
   ctx.textBaseline = 'top'
 
-  let y = sy(TEXT_Y_ORIG)
-
-  // Thin divider between QR and text
+  // Divisória entre o QR e o texto
   ctx.fillStyle = '#CBD5E1'
-  ctx.fillRect(lineX, y - 4, maxW, 1)
-  y += 6
+  ctx.fillRect(L.padding, L.ssidDividerY, L.qrSize, 1)
 
-  // SSID label
-  ctx.font      = '15px "GeistRegular", sans-serif'
+  ctx.font = '15px "GeistRegular", sans-serif'
   ctx.fillStyle = '#8898AA'
-  ctx.fillText('REDE WI-FI', cx, y, maxW)
-  y += 20
+  ctx.fillText('REDE WI-FI', L.centerX, L.ssidLabelY, L.qrSize)
 
-  // SSID value
-  ctx.font      = 'bold 26px "GeistBold", sans-serif'
+  ctx.font = 'bold 26px "GeistBold", sans-serif'
   ctx.fillStyle = '#001A40'
-  ctx.fillText(wifiSsid, cx, y, maxW)
-  y += 32
+  ctx.fillText(wifiSsid, L.centerX, L.ssidValueY, L.qrSize)
 
-  // Password section
-  if (wifiSecurity !== 'nopass') {
+  if (hasPassword) {
     ctx.fillStyle = '#CBD5E1'
-    ctx.fillRect(lineX, y + 2, maxW, 1)
-    y += 10
+    ctx.fillRect(L.padding, L.passwordDividerY, L.qrSize, 1)
 
-    ctx.font      = '15px "GeistRegular", sans-serif'
+    ctx.font = '15px "GeistRegular", sans-serif'
     ctx.fillStyle = '#8898AA'
-    ctx.fillText('SENHA', cx, y, maxW)
-    y += 20
+    ctx.fillText('SENHA', L.centerX, L.passwordLabelY, L.qrSize)
 
-    ctx.font      = 'bold 24px "GeistBold", sans-serif'
+    ctx.font = 'bold 24px "GeistBold", sans-serif'
     ctx.fillStyle = '#001A40'
-    ctx.fillText(wifiPassword, cx, y, maxW)
+    ctx.fillText(wifiPassword, L.centerX, L.passwordValueY, L.qrSize)
   }
 
-  return canvas.encode('png')
+  const qrBuffer = await buildQrBuffer(buildQrString(wifiSsid, wifiPassword, wifiSecurity), qrSize)
+  const padding = Math.round(L.padding * scale)
+
+  return sharp(await canvas.encode('png'))
+    .composite([{ input: qrBuffer, left: padding, top: padding }])
+    .png()
+    .toBuffer()
 }
 
 export async function generateWallpaper(params: GenerateImageParams): Promise<Buffer> {
-  const { templateBuffer, wifiSsid, wifiPassword, wifiSecurity } = params
+  const { templateBuffer, placement, ...content } = params
 
-  const qrString = buildQrString(wifiSsid, wifiPassword, wifiSecurity)
-
-  const [qrBuffer, overlay] = await Promise.all([
-    buildQrBuffer(qrString),
-    buildTextOverlay(wifiSsid, wifiPassword, wifiSecurity),
-  ])
+  // Quem chama já encaixa a posição; repetir aqui garante que o cartão nunca
+  // seja cortado, mesmo com uma posição vinda de outro caminho.
+  const fitted = fitPlacement(placement, content.wifiSecurity !== 'nopass')
+  const card = await renderQrCard(content, fitted.qrSize)
 
   return sharp(templateBuffer)
-    .resize(OUT_W, OUT_H, { fit: 'fill' })
-    .composite([
-      { input: qrBuffer, left: sx(QR_LEFT_ORIG), top: sy(QR_TOP_ORIG) },
-      { input: overlay,  left: 0,                top: 0              },
-    ])
+    .resize(OUTPUT_WIDTH, OUTPUT_HEIGHT, { fit: 'fill' })
+    .composite([{ input: card, left: fitted.qrLeft, top: fitted.qrTop }])
     .png({ compressionLevel: 6 })
     .toBuffer()
 }

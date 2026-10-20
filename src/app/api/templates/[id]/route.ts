@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { templateService } from '@/lib/services/template.service'
+import { updateTemplateSchema } from '@/lib/validations'
 
 export const runtime = 'nodejs'
 
@@ -7,12 +8,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   try {
     const { id } = await params
     const body = await request.json()
-    const isActive = Boolean(body.isActive)
-    const template = await templateService.toggleActive(id, isActive)
+    const parsed = updateTemplateSchema.safeParse(body)
+
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
+    }
+
+    const template = await templateService.update(id, parsed.data)
     return NextResponse.json(template)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Erro interno'
-    return NextResponse.json({ error: msg }, { status: 400 })
+    const status = msg.includes('não encontrado') ? 404 : 400
+    return NextResponse.json({ error: msg }, { status })
   }
 }
 

@@ -1,3 +1,5 @@
+import type { QrPlacement } from '@/lib/qr-placement'
+
 export type WifiSecurity = 'WPA' | 'WEP' | 'nopass'
 
 export type TemplateDto = {
@@ -6,6 +8,10 @@ export type TemplateDto = {
   description: string | null
   publicUrl: string
   isActive: boolean
+  // Posição padrão do cartão do QR; null = posição legada.
+  qrLeft: number | null
+  qrTop: number | null
+  qrSize: number | null
   createdAt: string
 }
 
@@ -19,6 +25,10 @@ export type WallpaperDto = {
   storedPath: string
   templateId: string
   templateName: string
+  // Posição efetiva do cartão: a gravada ou, se vazia, a legada.
+  qrLeft: number
+  qrTop: number
+  qrSize: number
   createdAt: string
 }
 
@@ -28,6 +38,9 @@ export type GenerateWallpaperInput = {
   wifiSsid: string
   wifiPassword: string
   wifiSecurity: WifiSecurity
+  qrLeft?: number
+  qrTop?: number
+  qrSize?: number
 }
 
 export type UpdateWallpaperInput = {
@@ -36,13 +49,27 @@ export type UpdateWallpaperInput = {
   wifiSsid?: string
   wifiPassword?: string
   wifiSecurity?: WifiSecurity
+  qrLeft?: number
+  qrTop?: number
+  qrSize?: number
 }
 
-export type GenerateImageParams = {
-  templateBuffer: Buffer
+export type UpdateTemplateInput = {
+  isActive?: boolean
+  qrLeft?: number
+  qrTop?: number
+  qrSize?: number
+}
+
+export type QrCardContent = {
   wifiSsid: string
   wifiPassword: string
   wifiSecurity: WifiSecurity
+}
+
+export type GenerateImageParams = QrCardContent & {
+  templateBuffer: Buffer
+  placement: QrPlacement
 }
 
 export type ApiError = {

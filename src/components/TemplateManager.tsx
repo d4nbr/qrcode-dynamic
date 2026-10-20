@@ -1,18 +1,20 @@
 'use client'
 
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { CheckCircle2, ImageIcon, Loader2, Move, ToggleLeft, ToggleRight, Trash2, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Upload, Trash2, ToggleLeft, ToggleRight, Loader2, ImageIcon, CheckCircle2 } from 'lucide-react'
+import { TemplateQrDialog } from '@/components/TemplateQrDialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate, proxyImageUrl } from '@/lib/utils'
 import type { TemplateDto } from '@/lib/types'
+import { formatDate, proxyImageUrl } from '@/lib/utils'
 
 export function TemplateManager() {
   const queryClient = useQueryClient()
+  const [positioning, setPositioning] = useState<TemplateDto | null>(null)
 
   const { data: templates = [], isLoading } = useQuery<TemplateDto[]>({
     queryKey: ['templates', 'all'],
@@ -79,6 +81,7 @@ export function TemplateManager() {
                 key={t.id}
                 template={t}
                 onToggle={isActive => toggleMutation.mutate({ id: t.id, isActive })}
+                onPosition={() => setPositioning(t)}
                 onDelete={() => deleteMutation.mutate(t.id)}
                 toggling={toggleMutation.isPending && (toggleMutation.variables as { id: string })?.id === t.id}
                 deleting={deleteMutation.isPending && deleteMutation.variables === t.id}
@@ -87,6 +90,8 @@ export function TemplateManager() {
           </div>
         )}
       </div>
+
+      {positioning && <TemplateQrDialog template={positioning} onClose={() => setPositioning(null)} />}
     </div>
   )
 }
@@ -230,12 +235,14 @@ function TemplateUploadZone() {
 function TemplateCard({
   template,
   onToggle,
+  onPosition,
   onDelete,
   toggling,
   deleting,
 }: {
   template: TemplateDto
   onToggle: (v: boolean) => void
+  onPosition: () => void
   onDelete: () => void
   toggling: boolean
   deleting: boolean
@@ -254,7 +261,12 @@ function TemplateCard({
         {template.description && <p className="mt-0.5 truncate text-gray-400 text-xs">{template.description}</p>}
         <p className="mt-1 text-gray-400 text-xs">{formatDate(template.createdAt)}</p>
 
-        <div className="mt-3 flex gap-2">
+        <Button size="sm" variant="outline" className="mt-3 w-full" onClick={onPosition}>
+          <Move className="h-3.5 w-3.5" />
+          Posição do QR
+        </Button>
+
+        <div className="mt-2 flex gap-2">
           <Button size="sm" variant="outline" className="flex-1" disabled={toggling} onClick={() => onToggle(!template.isActive)}>
             {toggling ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />

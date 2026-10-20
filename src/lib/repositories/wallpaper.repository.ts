@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/prisma'
 import type { Wallpaper } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
 type CreateWallpaperData = {
   location: string
@@ -10,6 +10,9 @@ type CreateWallpaperData = {
   storedPath: string
   publicUrl: string
   templateId: string
+  qrLeft: number
+  qrTop: number
+  qrSize: number
 }
 
 type UpdateWallpaperData = Partial<CreateWallpaperData>
