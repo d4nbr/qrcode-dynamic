@@ -5,7 +5,7 @@ import { QrCardPositioner, useQrCardImage } from '@/components/QrCardPositioner'
 import { Button } from '@/components/ui/button'
 import type { QrPlacement } from '@/lib/qr-placement'
 import type { QrCardContent, TemplateDto } from '@/lib/types'
-import { proxyImageUrl } from '@/lib/utils'
+import { templateImageUrl } from '@/lib/utils'
 
 type Props = {
   template: TemplateDto | null
@@ -24,7 +24,7 @@ export function WallpaperPreview({ template, content, placement, onPlacementChan
       <div className="space-y-3">
         <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-900">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={proxyImageUrl(savedUrl)} alt="Wallpaper gerado" className="h-full w-full object-cover" />
+          <img src={savedUrl} alt="Wallpaper gerado" className="h-full w-full object-cover" />
           <div className="absolute right-2 bottom-2 rounded-md bg-black/50 px-2 py-1 text-white text-xs">1920 × 1080</div>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={onAdjust}>
@@ -46,7 +46,7 @@ export function WallpaperPreview({ template, content, placement, onPlacementChan
 
   return (
     <QrCardPositioner
-      backgroundUrl={template.publicUrl}
+      backgroundUrl={templateImageUrl(template.id)}
       cardUrl={card.url}
       cardError={card.error}
       placement={placement}

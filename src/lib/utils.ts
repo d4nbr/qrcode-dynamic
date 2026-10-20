@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from 'clsx'
+import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
 export function cn(...inputs: ClassValue[]) {
@@ -41,11 +41,13 @@ export function buildQrString(ssid: string, password: string, security: string):
   return `WIFI:T:${security};S:${escapeWifiField(ssid)};P:${escapeWifiField(password)};;`
 }
 
-export function proxyImageUrl(url: string): string {
-  if (!url || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('/')) return url
-  try {
-    const { protocol } = new URL(url)
-    if (protocol === 'http:') return `/api/image-proxy?url=${encodeURIComponent(url)}`
-  } catch {}
-  return url
+// O bucket é privado: as imagens chegam ao navegador pelas rotas do app.
+export function templateImageUrl(templateId: string): string {
+  return `/api/templates/${templateId}/image`
+}
+
+// O caminho do objeto muda quando o wallpaper é regerado; levá-lo na URL faz
+// o navegador buscar a imagem nova em vez de reaproveitar a do cache.
+export function wallpaperImageUrl(wallpaper: { id: string; storedPath: string }): string {
+  return `/api/wallpapers/${wallpaper.id}/image?v=${encodeURIComponent(wallpaper.storedPath)}`
 }

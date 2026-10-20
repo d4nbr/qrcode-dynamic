@@ -3,14 +3,6 @@ import type { NextConfig } from 'next'
 const nextConfig: NextConfig = {
   serverExternalPackages: ['sharp', '@napi-rs/canvas'],
   output: 'standalone',
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'quanta-minio.esqcza.easypanel.host',
-      },
-    ],
-  },
   async headers() {
     return [
       {

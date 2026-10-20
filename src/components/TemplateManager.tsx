@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { TemplateDto } from '@/lib/types'
-import { formatDate, proxyImageUrl } from '@/lib/utils'
+import { formatDate, templateImageUrl } from '@/lib/utils'
 
 export function TemplateManager() {
   const queryClient = useQueryClient()
@@ -251,7 +251,7 @@ function TemplateCard({
     <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
       <div className="relative aspect-video bg-gray-100">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={proxyImageUrl(template.publicUrl)} alt={template.name} className="h-full w-full object-cover" loading="lazy" />
+        <img src={templateImageUrl(template.id)} alt={template.name} className="h-full w-full object-cover" loading="lazy" />
         <div className="absolute top-2 right-2">
           <Badge variant={template.isActive ? 'success' : 'secondary'}>{template.isActive ? 'Ativo' : 'Inativo'}</Badge>
         </div>

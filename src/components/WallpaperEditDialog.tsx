@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { fitPlacement, type QrPlacement, storedPlacement } from '@/lib/qr-placement'
 import type { QrCardContent, TemplateDto, WallpaperDto, WifiSecurity } from '@/lib/types'
+import { templateImageUrl } from '@/lib/utils'
 import { type GenerateWallpaperFormInput, type GenerateWallpaperInput, generateWallpaperSchema } from '@/lib/validations'
 
 type Props = {
@@ -252,7 +253,7 @@ export function WallpaperEditDialog({ wallpaper, onClose }: Props) {
               </Button>
             </div>
             <QrCardPositioner
-              backgroundUrl={selectedTemplate?.publicUrl ?? null}
+              backgroundUrl={selectedTemplate ? templateImageUrl(selectedTemplate.id) : null}
               cardUrl={card.url}
               cardError={card.error}
               placement={placement}
