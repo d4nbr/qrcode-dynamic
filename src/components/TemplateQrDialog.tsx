@@ -7,6 +7,7 @@ import { QrCardPositioner, SAMPLE_CARD_CONTENT, useQrCardImage } from '@/compone
 import { Button } from '@/components/ui/button'
 import { LEGACY_PLACEMENT, type QrPlacement, samePlacement, storedPlacement } from '@/lib/qr-placement'
 import type { TemplateDto } from '@/lib/types'
+import { templateImageUrl } from '@/lib/utils'
 
 type Props = {
   template: TemplateDto
@@ -75,7 +76,7 @@ export function TemplateQrDialog({ template, onClose }: Props) {
         </div>
 
         <QrCardPositioner
-          backgroundUrl={template.publicUrl}
+          backgroundUrl={templateImageUrl(template.id)}
           cardUrl={card.url}
           cardError={card.error}
           placement={placement}

@@ -3,12 +3,12 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Calendar, Download, Loader2, MapPin, Pencil, Trash2, Wifi } from 'lucide-react'
 import { useState } from 'react'
-import { WallpaperEditDialog } from '@/components/WallpaperEditDialog'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate, proxyImageUrl } from '@/lib/utils'
+import { WallpaperEditDialog } from '@/components/WallpaperEditDialog'
 import type { PaginatedWallpapers, WallpaperDto } from '@/lib/types'
+import { formatDate, wallpaperImageUrl } from '@/lib/utils'
 
 async function fetchWallpapers({ pageParam }: { pageParam?: string }): Promise<PaginatedWallpapers> {
   const params = new URLSearchParams({ limit: '12' })
@@ -41,21 +41,21 @@ export function WallpaperHistory() {
 
   if (isLoading) return <HistorySkeleton />
   if (isError) {
-    return <div className="text-center py-12 text-red-500">Erro ao carregar histórico.</div>
+    return <div className="py-12 text-center text-red-500">Erro ao carregar histórico.</div>
   }
   if (allItems.length === 0) {
     return (
-      <div className="text-center py-16 text-gray-400">
-        <Wifi className="w-12 h-12 mx-auto mb-3 opacity-30" />
+      <div className="py-16 text-center text-gray-400">
+        <Wifi className="mx-auto mb-3 h-12 w-12 opacity-30" />
         <p className="font-medium">Nenhum wallpaper gerado ainda.</p>
-        <p className="text-sm mt-1">Acesse a aba &ldquo;Gerar&rdquo; para criar o primeiro.</p>
+        <p className="mt-1 text-sm">Acesse a aba &ldquo;Gerar&rdquo; para criar o primeiro.</p>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {allItems.map(item => (
           <WallpaperCard
             key={item.id}
@@ -74,7 +74,7 @@ export function WallpaperHistory() {
           <Button variant="outline" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
             {isFetchingNextPage ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
                 Carregando...
               </>
             ) : (
@@ -105,52 +105,52 @@ function WallpaperCard({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group">
+    <div className="group overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
       {/* Thumbnail */}
-      <div className="aspect-video bg-gray-100 relative overflow-hidden">
+      <div className="relative aspect-video overflow-hidden bg-gray-100">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={proxyImageUrl(item.publicUrl)}
+          src={wallpaperImageUrl(item)}
           alt={item.location}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
       </div>
 
       {/* Info */}
-      <div className="p-4 space-y-3">
+      <div className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="flex items-center gap-1.5 font-semibold text-[#003366] text-sm leading-tight">
               <MapPin className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{item.location}</span>
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">{item.templateName}</p>
+            <p className="mt-0.5 text-gray-400 text-xs">{item.templateName}</p>
           </div>
           <Badge variant="secondary">{item.wifiSecurity}</Badge>
         </div>
 
         <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 text-xs text-gray-600">
-            <Wifi className="w-3.5 h-3.5 text-[#003366]" />
-            <span className="font-medium truncate">{item.wifiSsid}</span>
+          <div className="flex items-center gap-1.5 text-gray-600 text-xs">
+            <Wifi className="h-3.5 w-3.5 text-[#003366]" />
+            <span className="truncate font-medium">{item.wifiSsid}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-            <Calendar className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1.5 text-gray-400 text-xs">
+            <Calendar className="h-3.5 w-3.5" />
             <span>{formatDate(item.createdAt)}</span>
           </div>
         </div>
 
         <div className="flex gap-2 pt-1">
           <Button size="sm" variant="outline" className="flex-1" onClick={handleDownload}>
-            <Download className="w-3.5 h-3.5" />
+            <Download className="h-3.5 w-3.5" />
             Baixar
           </Button>
           <Button size="sm" variant="outline" onClick={onEdit} aria-label="Editar wallpaper">
-            <Pencil className="w-3.5 h-3.5" />
+            <Pencil className="h-3.5 w-3.5" />
           </Button>
           <Button size="sm" variant="destructive" onClick={onDelete} disabled={deleting}>
-            {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
           </Button>
         </div>
       </div>
@@ -160,11 +160,11 @@ function WallpaperCard({
 
 function HistorySkeleton() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div key={i} className="overflow-hidden rounded-xl border border-gray-100 bg-white">
           <Skeleton className="aspect-video" />
-          <div className="p-4 space-y-2">
+          <div className="space-y-2 p-4">
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-3 w-1/2" />
           </div>

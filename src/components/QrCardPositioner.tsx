@@ -13,7 +13,7 @@ import {
   type QrPlacement,
 } from '@/lib/qr-placement'
 import type { QrCardContent } from '@/lib/types'
-import { cn, proxyImageUrl } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 
 const MOVE_STEP = 10
 const MOVE_STEP_LARGE = 50
@@ -191,7 +191,7 @@ export function QrCardPositioner({ backgroundUrl, cardUrl, cardError = false, pl
         {backgroundUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={proxyImageUrl(backgroundUrl)}
+            src={backgroundUrl}
             alt=""
             draggable={false}
             className="pointer-events-none absolute inset-0 h-full w-full object-fill"

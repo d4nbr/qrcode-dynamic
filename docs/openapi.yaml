@@ -127,6 +127,30 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  /templates/{id}/image:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+
+    get:
+      tags: [Templates]
+      summary: Imagem do template (PNG)
+      description: >
+        Entrega a arte do template, lida do bucket privado com as credenciais
+        do servidor. Registros antigos guardados em outro storage público
+        recebem um redirecionamento 302 para o endereço gravado.
+      responses:
+        '200':
+          description: Imagem PNG
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '302':
+          description: Redirecionamento para o endereço gravado (registro antigo fora do bucket atual)
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   # ── Wallpapers ───────────────────────────────────────────────────────────────
 
   /wallpapers:
@@ -286,6 +310,39 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+
+  /wallpapers/{id}/image:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+      - name: v
+        in: query
+        required: false
+        schema:
+          type: string
+        description: >
+          Caminho do objeto (`storedPath`). Muda quando o wallpaper é regerado,
+          para o navegador não reaproveitar a imagem antiga do cache.
+
+    get:
+      tags: [Wallpapers]
+      summary: Imagem do wallpaper para exibição (PNG)
+      description: >
+        Entrega o wallpaper para exibir na tela, lido do bucket privado com as
+        credenciais do servidor. Para baixar com nome de arquivo, use
+        `/wallpapers/{id}/download`. Registros antigos guardados em outro
+        storage público recebem um redirecionamento 302 para o endereço gravado.
+      responses:
+        '200':
+          description: Imagem PNG
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '302':
+          description: Redirecionamento para o endereço gravado (registro antigo fora do bucket atual)
+        '404':
+          $ref: '#/components/responses/NotFound'
 
 # ── Components ─────────────────────────────────────────────────────────────────
 

@@ -52,3 +52,18 @@ export async function deleteFile(storagePath: string): Promise<void> {
 export function getPublicUrl(storagePath: string): string {
   return `${PUBLIC_URL}/${BUCKET}/${storagePath}`
 }
+
+export type StoredImage = { buffer: Buffer } | { redirect: string }
+
+// O bucket é privado: o navegador recebe as imagens pelo app, que as lê com as
+// credenciais do servidor. Registros antigos podem apontar para outro storage
+// público (o MinIO anterior); se o objeto não estiver no bucket atual, devolve
+// esse endereço gravado para a rota redirecionar, como funcionava antes.
+export async function loadStoredImage(storagePath: string, publicUrl: string): Promise<StoredImage> {
+  try {
+    return { buffer: await downloadFile(storagePath) }
+  } catch (err) {
+    if (publicUrl && publicUrl !== getPublicUrl(storagePath)) return { redirect: publicUrl }
+    throw err
+  }
+}

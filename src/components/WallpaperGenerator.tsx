@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select'
 import { WallpaperPreview } from '@/components/WallpaperPreview'
 import { fitPlacement, LEGACY_PLACEMENT, type QrPlacement, storedPlacement } from '@/lib/qr-placement'
 import type { QrCardContent, TemplateDto, WallpaperDto } from '@/lib/types'
+import { wallpaperImageUrl } from '@/lib/utils'
 import { type GenerateWallpaperFormInput, type GenerateWallpaperInput, generateWallpaperSchema } from '@/lib/validations'
 
 export function WallpaperGenerator() {
@@ -257,7 +258,7 @@ export function WallpaperGenerator() {
           content={cardContent}
           placement={placement}
           onPlacementChange={setPlacement}
-          savedUrl={generatedWallpaper?.publicUrl ?? null}
+          savedUrl={generatedWallpaper ? wallpaperImageUrl(generatedWallpaper) : null}
           onAdjust={() => setGeneratedWallpaper(null)}
         />
       </div>

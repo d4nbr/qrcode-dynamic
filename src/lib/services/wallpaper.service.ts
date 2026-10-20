@@ -3,7 +3,7 @@ import { fitPlacement, LEGACY_PLACEMENT, type QrPlacement, samePlacement, stored
 import { templateRepository } from '@/lib/repositories/template.repository'
 import { wallpaperRepository } from '@/lib/repositories/wallpaper.repository'
 import { generateWallpaper, renderQrCard } from '@/lib/services/image-generator'
-import { deleteFile, downloadFile, uploadFile } from '@/lib/storage'
+import { deleteFile, downloadFile, loadStoredImage, type StoredImage, uploadFile } from '@/lib/storage'
 import type {
   GenerateWallpaperInput,
   PaginatedWallpapers,
@@ -183,6 +183,12 @@ export const wallpaperService = {
     if (!wallpaper) throw new Error('Wallpaper não encontrado.')
     await wallpaperRepository.delete(id)
     await deleteFile(wallpaper.storedPath)
+  },
+
+  async getImage(id: string): Promise<StoredImage> {
+    const wallpaper = await wallpaperRepository.findById(id)
+    if (!wallpaper) throw new Error('Wallpaper não encontrado.')
+    return loadStoredImage(wallpaper.storedPath, wallpaper.publicUrl)
   },
 
   async getById(id: string): Promise<WallpaperDto | null> {

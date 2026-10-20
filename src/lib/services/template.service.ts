@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import sharp from 'sharp'
 import { templateRepository } from '@/lib/repositories/template.repository'
-import { deleteFile, uploadFile } from '@/lib/storage'
+import { deleteFile, loadStoredImage, type StoredImage, uploadFile } from '@/lib/storage'
 import type { TemplateDto, UpdateTemplateInput } from '@/lib/types'
 import { sanitizeFilename } from '@/lib/utils'
 
@@ -41,6 +41,12 @@ export const templateService = {
   async listActive(): Promise<TemplateDto[]> {
     const templates = await templateRepository.findAllActive()
     return templates.map(toDto)
+  },
+
+  async getImage(id: string): Promise<StoredImage> {
+    const template = await templateRepository.findById(id)
+    if (!template) throw new Error('Template não encontrado.')
+    return loadStoredImage(template.storedPath, template.publicUrl)
   },
 
   async upload(file: File, name: string, description?: string): Promise<TemplateDto> {
