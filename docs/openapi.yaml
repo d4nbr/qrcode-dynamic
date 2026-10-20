@@ -83,17 +83,16 @@ paths:
 
     patch:
       tags: [Templates]
-      summary: Ativar / desativar template
+      summary: Atualizar template (ativação e posição padrão do QR)
+      description: >
+        Altera apenas os campos enviados. Campos fora do schema são recusados
+        com 400. A posição padrão não altera wallpapers já gerados.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [isActive]
-              properties:
-                isActive:
-                  type: boolean
+              $ref: '#/components/schemas/UpdateTemplateInput'
       responses:
         '200':
           description: Template atualizado
@@ -103,6 +102,8 @@ paths:
                 $ref: '#/components/schemas/Template'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
     delete:
       tags: [Templates]
@@ -178,40 +179,24 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /wallpapers/preview:
-    get:
+  /wallpapers/card:
+    post:
       tags: [Wallpapers]
-      summary: Preview do wallpaper (PNG em tempo real)
+      summary: Cartão do QR para a prévia (PNG)
       description: >
-        Gera e retorna a imagem PNG do wallpaper sem persistir no banco.
-        Útil para exibição em tempo real no formulário.
-      parameters:
-        - name: templateId
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: ssid
-          in: query
-          required: true
-          schema:
-            type: string
-            maxLength: 32
-        - name: password
-          in: query
-          schema:
-            type: string
-            maxLength: 63
-            default: ''
-        - name: security
-          in: query
-          schema:
-            type: string
-            enum: [WPA, WEP, nopass]
-            default: WPA
+        Gera o cartão branco com o QR Code, o nome da rede e a senha, no tamanho
+        legado (QR de 331 px), sem gravar nada. A tela sobrepõe o cartão à arte
+        do template e o escala por CSS. É POST para que a senha vá no corpo, e
+        não na URL. Substitui o antigo `GET /wallpapers/preview`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QrCardInput'
       responses:
         '200':
-          description: Imagem PNG do wallpaper
+          description: Imagem PNG do cartão
           headers:
             Cache-Control:
               schema:
@@ -224,8 +209,6 @@ paths:
                 format: binary
         '400':
           $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
 
   /wallpapers/{id}:
     parameters:
@@ -236,10 +219,11 @@ paths:
       summary: Editar wallpaper
       description: >
         Atualiza um wallpaper já gerado. Alterar `wifiSsid`, `wifiPassword`,
-        `wifiSecurity` ou `templateId` regera a imagem e o QR Code, publica o
-        PNG em um novo caminho no storage e remove o anterior — `publicUrl` e
-        `storedPath` mudam na resposta. Alterar apenas `location` atualiza só o
-        registro, preservando a imagem existente.
+        `wifiSecurity`, `templateId` ou a posição do cartão (`qrLeft`, `qrTop`,
+        `qrSize`) regera a imagem e o QR Code, publica o PNG em um novo caminho
+        no storage e remove o anterior — `publicUrl` e `storedPath` mudam na
+        resposta. Alterar apenas `location` atualiza só o registro, preservando
+        a imagem existente. Campo ausente mantém o valor atual.
       requestBody:
         required: true
         content:
@@ -333,6 +317,15 @@ components:
           format: uri
         isActive:
           type: boolean
+        qrLeft:
+          type: [integer, 'null']
+          description: Posição padrão do cartão do QR (x, px da imagem 1920×1080). `null` = posição legada (816).
+        qrTop:
+          type: [integer, 'null']
+          description: Posição padrão do cartão do QR (y). `null` = posição legada (264).
+        qrSize:
+          type: [integer, 'null']
+          description: Lado padrão do QR, em px. `null` = tamanho legado (331).
         createdAt:
           type: string
           format: date-time
@@ -363,6 +356,18 @@ components:
           format: uuid
         templateName:
           type: string
+        qrLeft:
+          type: integer
+          description: >
+            Canto superior esquerdo do cartão do QR (x), em px da imagem
+            1920×1080. Wallpapers anteriores ao posicionamento informam a
+            posição legada.
+        qrTop:
+          type: integer
+          description: Canto superior esquerdo do cartão do QR (y), em px.
+        qrSize:
+          type: integer
+          description: Lado do QR, em px.
         createdAt:
           type: string
           format: date-time
@@ -405,13 +410,26 @@ components:
           type: string
           enum: [WPA, WEP, nopass]
           default: WPA
+        qrLeft:
+          $ref: '#/components/schemas/QrLeft'
+        qrTop:
+          $ref: '#/components/schemas/QrTop'
+        qrSize:
+          $ref: '#/components/schemas/QrSize'
+      description: >
+        `qrLeft`, `qrTop` e `qrSize` são opcionais e só valem juntos. Sem eles,
+        vale a posição padrão do template ou, na falta dela, a legada. O
+        servidor encaixa o cartão inteiro dentro da imagem e grava os valores
+        usados.
 
     UpdateWallpaperInput:
       type: object
       minProperties: 1
       description: >
         Mesmos campos e mesmas regras de `GenerateWallpaperInput`, todos
-        opcionais. Ao menos um campo deve ser informado.
+        opcionais e sem valores padrão: campo ausente mantém o valor atual. Ao
+        menos um campo deve ser informado; `qrLeft`, `qrTop` e `qrSize` só
+        valem juntos.
       properties:
         templateId:
           type: string
@@ -431,6 +449,64 @@ components:
         wifiSecurity:
           type: string
           enum: [WPA, WEP, nopass]
+        qrLeft:
+          $ref: '#/components/schemas/QrLeft'
+        qrTop:
+          $ref: '#/components/schemas/QrTop'
+        qrSize:
+          $ref: '#/components/schemas/QrSize'
+
+    UpdateTemplateInput:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: >
+        Ao menos um campo. `qrLeft`, `qrTop` e `qrSize` só valem juntos e
+        definem a posição padrão do cartão do QR para este template.
+      properties:
+        isActive:
+          type: boolean
+        qrLeft:
+          $ref: '#/components/schemas/QrLeft'
+        qrTop:
+          $ref: '#/components/schemas/QrTop'
+        qrSize:
+          $ref: '#/components/schemas/QrSize'
+
+    QrCardInput:
+      type: object
+      required: [wifiSsid]
+      properties:
+        wifiSsid:
+          type: string
+          minLength: 1
+          maxLength: 32
+        wifiPassword:
+          type: string
+          maxLength: 63
+          default: ''
+        wifiSecurity:
+          type: string
+          enum: [WPA, WEP, nopass]
+          default: WPA
+
+    QrLeft:
+      type: integer
+      minimum: 0
+      maximum: 1920
+      description: Canto superior esquerdo do cartão do QR (x), em px da imagem 1920×1080.
+
+    QrTop:
+      type: integer
+      minimum: 0
+      maximum: 1080
+      description: Canto superior esquerdo do cartão do QR (y), em px da imagem 1920×1080.
+
+    QrSize:
+      type: integer
+      minimum: 240
+      maximum: 640
+      description: Lado do QR, em px. O cartão cresce na mesma proporção.
 
     Success:
       type: object

@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import sharp from 'sharp'
 import { templateRepository } from '@/lib/repositories/template.repository'
-import { uploadFile, deleteFile } from '@/lib/storage'
+import { deleteFile, uploadFile } from '@/lib/storage'
+import type { TemplateDto, UpdateTemplateInput } from '@/lib/types'
 import { sanitizeFilename } from '@/lib/utils'
-import type { TemplateDto } from '@/lib/types'
 
 const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp']
 const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
@@ -14,6 +14,9 @@ function toDto(t: {
   description: string | null
   publicUrl: string
   isActive: boolean
+  qrLeft: number | null
+  qrTop: number | null
+  qrSize: number | null
   createdAt: Date
 }): TemplateDto {
   return {
@@ -22,6 +25,9 @@ function toDto(t: {
     description: t.description,
     publicUrl: t.publicUrl,
     isActive: t.isActive,
+    qrLeft: t.qrLeft,
+    qrTop: t.qrTop,
+    qrSize: t.qrSize,
     createdAt: t.createdAt.toISOString(),
   }
 }
@@ -73,8 +79,12 @@ export const templateService = {
     return toDto(template)
   },
 
-  async toggleActive(id: string, isActive: boolean): Promise<TemplateDto> {
-    const template = await templateRepository.toggleActive(id, isActive)
+  // Altera só os campos recebidos: ativação e/ou posição padrão do cartão do QR.
+  async update(id: string, input: UpdateTemplateInput): Promise<TemplateDto> {
+    const current = await templateRepository.findById(id)
+    if (!current) throw new Error('Template não encontrado.')
+
+    const template = await templateRepository.update(id, input)
     return toDto(template)
   },
 

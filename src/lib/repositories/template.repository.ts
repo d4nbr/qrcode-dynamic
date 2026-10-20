@@ -1,5 +1,6 @@
-import { prisma } from '@/lib/prisma'
 import type { Template } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import type { UpdateTemplateInput } from '@/lib/types'
 
 type CreateTemplateData = {
   name: string
@@ -31,8 +32,8 @@ export const templateRepository = {
     return prisma.template.create({ data })
   },
 
-  toggleActive(id: string, isActive: boolean): Promise<Template> {
-    return prisma.template.update({ where: { id }, data: { isActive } })
+  update(id: string, data: UpdateTemplateInput): Promise<Template> {
+    return prisma.template.update({ where: { id }, data })
   },
 
   delete(id: string): Promise<Template> {
